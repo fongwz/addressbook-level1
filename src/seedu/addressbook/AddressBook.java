@@ -9,7 +9,10 @@ package seedu.addressbook;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -90,6 +93,8 @@ public class AddressBook {
     private static final String MESSAGE_STORAGE_FILE_CREATED = "Created new empty storage file: %1$s";
     private static final String MESSAGE_WELCOME = "Welcome to your Address Book!";
     private static final String MESSAGE_USING_DEFAULT_FILE = "Using default storage file : " + DEFAULT_STORAGE_FILEPATH;
+    private static final String MESSAGE_EDITNAME_FAIL = "Couldn't find this person";
+    private static final String MESSAGE_EDITNAME_SUCCESS = "Successfully changed person's name!";
 
     // These are the prefix strings to define the data type of a command parameter
     private static final String PERSON_DATA_PREFIX_PHONE = "p/";
@@ -132,6 +137,9 @@ public class AddressBook {
     private static final String COMMAND_EXIT_WORD = "exit";
     private static final String COMMAND_EXIT_DESC = "Exits the program.";
     private static final String COMMAND_EXIT_EXAMPLE = COMMAND_EXIT_WORD;
+
+    private static final String COMMAND_EDITNAME_WORD = "editname";
+    private static final String COMMAND_EDITNAME_DESC = "Changes the person's name in the address book.";
 
     private static final String DIVIDER = "===================================================";
 
@@ -369,22 +377,24 @@ public class AddressBook {
         final String commandType = commandTypeAndParams[0];
         final String commandArgs = commandTypeAndParams[1];
         switch (commandType) {
-        case COMMAND_ADD_WORD:
-            return executeAddPerson(commandArgs);
-        case COMMAND_FIND_WORD:
-            return executeFindPersons(commandArgs);
-        case COMMAND_LIST_WORD:
-            return executeListAllPersonsInAddressBook();
-        case COMMAND_DELETE_WORD:
-            return executeDeletePerson(commandArgs);
-        case COMMAND_CLEAR_WORD:
-            return executeClearAddressBook();
-        case COMMAND_HELP_WORD:
-            return getUsageInfoForAllCommands();
-        case COMMAND_EXIT_WORD:
-            executeExitProgramRequest();
-        default:
-            return getMessageForInvalidCommandInput(commandType, getUsageInfoForAllCommands());
+            case COMMAND_ADD_WORD:
+                return executeAddPerson(commandArgs);
+            case COMMAND_FIND_WORD:
+                return executeFindPersons(commandArgs);
+            case COMMAND_LIST_WORD:
+                return executeListAllPersonsInAddressBook();
+            case COMMAND_DELETE_WORD:
+                return executeDeletePerson(commandArgs);
+            case COMMAND_CLEAR_WORD:
+                return executeClearAddressBook();
+            case COMMAND_HELP_WORD:
+                return getUsageInfoForAllCommands();
+            case COMMAND_EDITNAME_WORD:
+                return executeEditPersonName();
+            case COMMAND_EXIT_WORD:
+                executeExitProgramRequest();
+            default:
+                return getMessageForInvalidCommandInput(commandType, getUsageInfoForAllCommands());
         }
     }
 
@@ -404,6 +414,7 @@ public class AddressBook {
      * @param correctUsageInfo message showing the correct usage
      * @return invalid command args feedback message
      */
+
     private static String getMessageForInvalidCommandInput(String userCommand, String correctUsageInfo) {
         return String.format(MESSAGE_INVALID_COMMAND_FORMAT, userCommand, correctUsageInfo);
     }
@@ -578,6 +589,36 @@ public class AddressBook {
         showToUser(toBeDisplayed);
         return getMessageForPersonsDisplayedSummary(toBeDisplayed);
     }
+
+    /**
+     * Edits person's name in the address book
+     */
+    private static String executeEditPersonName() {
+        Scanner sc = new Scanner(System.in);
+        System.out.print(LINE_PREFIX + "Enter old name: ");
+        String oldName = sc.nextLine();
+        System.out.print(LINE_PREFIX + "Enter new name: ");
+        String newName = sc.nextLine();
+
+        for(int i = 0 ; i < ALL_PERSONS.size() ; i++){
+            if(oldName.equals(getNameFromPerson(ALL_PERSONS.get(i)))){
+                setNameForPerson(newName, ALL_PERSONS.get(i));
+
+                Path path = Paths.get(DEFAULT_STORAGE_FILEPATH);
+                Charset charset = StandardCharsets.UTF_8;
+                try {
+                    String content = new String(Files.readAllBytes(path), charset);
+                    content = content.replaceAll(oldName, newName);
+                    Files.write(path, content.getBytes(charset));
+                } catch (Exception e) {
+                    System.out.print(e.toString());
+                }
+                return MESSAGE_EDITNAME_SUCCESS;
+            }
+        }
+        return MESSAGE_EDITNAME_FAIL;
+    }
+
 
     /**
      * Requests to terminate the program.
@@ -843,6 +884,15 @@ public class AddressBook {
     }
 
     /**
+     * Sets the given person's name
+     *
+     * @param person whose name you want
+     */
+    private static void setNameForPerson(String name, String[] person){
+        person[PERSON_DATA_INDEX_NAME] = name;
+    }
+
+    /**
      * Returns given person's phone number
      *
      * @param person whose phone number you want
@@ -1087,6 +1137,7 @@ public class AddressBook {
                 + getUsageInfoForViewCommand() + LS
                 + getUsageInfoForDeleteCommand() + LS
                 + getUsageInfoForClearCommand() + LS
+                + getUsageInfoForEditNameCommand() + LS
                 + getUsageInfoForExitCommand() + LS
                 + getUsageInfoForHelpCommand();
     }
@@ -1134,6 +1185,11 @@ public class AddressBook {
     private static String getUsageInfoForExitCommand() {
         return String.format(MESSAGE_COMMAND_HELP, COMMAND_EXIT_WORD, COMMAND_EXIT_DESC)
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EXIT_EXAMPLE);
+    }
+
+    /** Returns the string for showing 'editname' command usage instruction */
+    private static String getUsageInfoForEditNameCommand() {
+        return String.format(MESSAGE_COMMAND_HELP, COMMAND_EDITNAME_WORD, COMMAND_EDITNAME_DESC) + LS;
     }
 
 
